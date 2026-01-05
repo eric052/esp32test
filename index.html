@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 馬達遙控</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; text-align: center; padding: 20px; background: #f0f0f0; }
+        button { padding: 15px 30px; margin: 10px; font-size: 18px; border: none; border-radius: 10px; cursor: pointer; }
+        .forward { background: #4CAF50; color: white; }
+        .backward { background: #f44336; color: white; }
+        .stop { background: #ff9800; color: white; font-size: 24px; font-weight: bold; }
+        #status { margin: 20px; padding: 10px; background: white; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🛵 ESP32 藍牙馬達遙控</h1>
+    <button id="connect">連線 ESP32</button>
+    <div id="status">未連線</div>
+    <br><br>
+    <button class="forward" id="forward">前進 ↑</button><br>
+    <button class="stop" id="stop">停止 ⏹️</button><br>
+    <button class="backward" id="backward">後退 ↓</button>
+
+    <script>
+        const serviceUUID = '12345678-1234-1234-1234-123456789abc';
+        const characteristicUUID = '87654321-4321-4321-4321-cba987654321';
+        let device, server, service, characteristic;
+
+        document.getElementById('connect').addEventListener('click', connect);
+        document.getElementById('forward').addEventListener('click', () => send('F'));
+        document.getElementById('backward').addEventListener('click', () => send('B'));
+        document.getElementById('stop').addEventListener('click', () => send('S'));
+
+        async function connect() {
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{name: 'Motor_ESP32'}],
+                    optionalServices: [serviceUUID]
+                });
+                server = await device.gatt.connect();
+                service = await server.getPrimaryService(serviceUUID);
+                characteristic = await service.getCharacteristic(characteristicUUID);
+                document.getElementById('status').innerHTML = '✅ 已連線 ' + device.name;
+                document.getElementById('status').style.background = '#4CAF50';
+                document.getElementById('status').style.color = 'white';
+            } catch (error) {
+                document.getElementById('status').innerHTML = '❌ 連線失敗: ' + error;
+            }
+        }
+
+        async function send(cmd) {
+            if (characteristic) {
+                await characteristic.writeValue(new TextEncoder().encode(cmd));
+                document.getElementById('status').innerHTML = '📤 已送 ' + cmd;
+            } else {
+                alert('先連線 ESP32！');
+            }
+        }
+    </script>
+</body>
+</html>
